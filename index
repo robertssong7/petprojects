@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Pet Projects</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-900 text-slate-50 min-h-screen flex flex-col items-center justify-center p-6">
+
+    <div class="max-w-2xl w-full space-y-8">
+        <div class="text-center space-y-2">
+            <h1 class="text-4xl font-bold tracking-tight text-white">App Dashboard</h1>
+            <p class="text-slate-400">Select a project to launch</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-4">
+            
+            <!-- Poker App Link -->
+            <a href="/poker" class="group relative block p-6 bg-slate-800 border border-slate-700 rounded-2xl hover:bg-slate-750 hover:border-indigo-500 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-indigo-500/10 rounded-xl group-hover:bg-indigo-500/20 transition-colors">
+                        <i data-lucide="spade" class="w-6 h-6 text-indigo-400"></i>
+                    </div>
+                    <i data-lucide="arrow-right" class="w-5 h-5 text-slate-500 group-hover:text-indigo-400 transition-colors"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-white mb-2">Poker Trainer</h2>
+                <p class="text-sm text-slate-400">GTO Lite training tool with range matrices and street advice.</p>
+            </a>
+
+            <!-- Bar App Link -->
+            <a href="/bar" class="group relative block p-6 bg-slate-800 border border-slate-700 rounded-2xl hover:bg-slate-750 hover:border-emerald-500 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
+                        <i data-lucide="martini" class="w-6 h-6 text-emerald-400"></i>
+                    </div>
+                    <i data-lucide="arrow-right" class="w-5 h-5 text-slate-500 group-hover:text-emerald-400 transition-colors"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-white mb-2">Bar Wizard</h2>
+                <p class="text-sm text-slate-400">Cocktail generator based on your pantry ingredients.</p>
+            </a>
+
+        </div>
+
+        <footer class="text-center pt-8 border-t border-slate-800/50">
+            <p class="text-xs text-slate-500">Deployed via Netlify</p>
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
