@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Bar Wizard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for TypeScript/JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-neutral-100 text-neutral-900">
+
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="typescript,react">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- Icons (Inlined to prevent CDN errors) ---
+        const Icon = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
+        );
+        const Check = (p) => <Icon {...p}><polyline points="20 6 9 17 4 12" /></Icon>;
+        const ChevronRight = (p) => <Icon {...p}><polyline points="9 18 15 12 9 6" /></Icon>;
+        const ChevronLeft = (p) => <Icon {...p}><polyline points="15 18 9 12 15 6" /></Icon>;
+        const Plus = (p) => <Icon {...p}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></Icon>;
+        // Renamed 'X' to 'CloseIcon' to avoid global variable conflicts
+        const CloseIcon = (p) => <Icon {...p}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></Icon>;
+        const Info = (p) => <Icon {...p}><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></Icon>;
+        const Copy = (p) => <Icon {...p}><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></Icon>;
+        const RefreshCw = (p) => <Icon {...p}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></Icon>;
+        const Shuffle = (p) => <Icon {...p}><polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></Icon>;
+        const Globe = (p) => <Icon {...p}><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></Icon>;
+        const Sparkles = (p) => <Icon {...p}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></Icon>;
+
+        /**
+         * Home Bar Wizard – v3 (Browser Compatible)
+         */
+
+        // ---------------------------------------------------------------------------
+        // Data & Types
+        // ---------------------------------------------------------------------------
+        const CATEGORIES = [
+          { key: "base", title: "Base Spirits", helper: "Choose at least one base spirit.", options: ["Vodka", "Gin", "Rum", "Tequila", "Whiskey"], min: 1 },
+          { key: "liqueurs", title: "Liqueurs & Modifiers", helper: "Optional – picks unlock more classics.", options: ["Amaretto", "Vermouth", "Aperol", "Coffee Liqueur", "Elderflower Liqueur"] },
+          { key: "mixers", title: "Mixers", helper: "Bubbles and friends.", options: ["Club Soda", "Tonic Water", "Cola", "Lemonade", "Sparkling Water"] },
+          { key: "juices", title: "Juices", helper: "Fresh is best, but any works.", options: ["Lemon Juice", "Lime Juice", "Orange Juice", "Pineapple Juice", "Cranberry Juice"] },
+          { key: "syrups", title: "Syrups", helper: "Sweet balance.", options: ["Simple Syrup", "Agave Syrup", "Grenadine"] },
+          { key: "bitters", title: "Bitters & Aromatics", helper: "Dashes make the drink.", options: ["Angostura Bitters", "Orange Bitters", "Absinthe"] },
+          { key: "essentials", title: "Other Essentials", helper: "Nice to have.", options: ["Ice Cubes", "Salt", "Sugar", "Egg Whites"] },
+        ];
+
+        const NORM = {
+          vodka: "Vodka", gin: "Gin", rum: "Rum", tequila: "Tequila", whiskey: "Whiskey", bourbon: "Whiskey", rye: "Whiskey",
+          vermouth: "Vermouth", "sweet vermouth": "Vermouth", aperol: "Aperol", campari: "Aperol",
+          amaretto: "Amaretto", kahlua: "Coffee Liqueur", "coffee liqueur": "Coffee Liqueur",
+          stgermain: "Elderflower Liqueur", "st-germain": "Elderflower Liqueur", "elderflower liqueur": "Elderflower Liqueur",
+          "club soda": "Club Soda", soda: "Club Soda", seltzer: "Sparkling Water", "sparkling water": "Sparkling Water", tonic: "Tonic Water",
+          cola: "Cola", lemonade: "Lemonade",
+          "lemon juice": "Lemon Juice", lemon: "Lemon Juice", "lime juice": "Lime Juice", lime: "Lime Juice",
+          "orange juice": "Orange Juice", oj: "Orange Juice", "pineapple juice": "Pineapple Juice", "cranberry juice": "Cranberry Juice",
+          grenadine: "Grenadine", "simple syrup": "Simple Syrup", syrup: "Simple Syrup", "agave syrup": "Agave Syrup", agave: "Agave Syrup",
+          angostura: "Angostura Bitters", "orange bitters": "Orange Bitters", absinthe: "Absinthe",
+          ice: "Ice Cubes", salt: "Salt", sugar: "Sugar", egg: "Egg Whites", "egg white": "Egg Whites",
+        };
+
+        const RECIPES = [
+          { name: "Whiskey Sour", style: "Classic", required: ["Whiskey", "Lemon Juice", "Simple Syrup"], optional: ["Egg Whites", "Angostura Bitters"], spec: "2 oz whiskey, 1 oz lemon, 1 oz simple. Shake hard, double strain." },
+          { name: "Margarita (Agave)", style: "Classic", required: ["Tequila", "Lime Juice", "Agave Syrup"], optional: ["Salt"], spec: "2 oz tequila, 1 oz lime, 0.75 oz agave. Shake, strain over fresh ice." },
+          { name: "Elderflower Margarita", style: "Twist", required: ["Tequila", "Lime Juice", "Elderflower Liqueur"], optional: ["Agave Syrup", "Salt"], spec: "2 oz tequila, 0.75 oz elderflower, 0.75 oz lime, 0–0.25 oz agave to taste. Shake, strain over fresh ice." },
+          { name: "Gin & Tonic", style: "Highball", required: ["Gin", "Tonic Water"], optional: ["Lime Juice"], spec: "2 oz gin. Build over ice, top with tonic." },
+          { name: "Vodka Soda", style: "Highball", required: ["Vodka", "Club Soda"], optional: ["Lime Juice"], spec: "2 oz vodka. Build over ice, top with soda." },
+          { name: "Rum & Cola", style: "Highball", required: ["Rum", "Cola"], optional: ["Lime Juice"], spec: "2 oz rum. Build over ice, top with cola." },
+          { name: "Americano (Aperol)", style: "Low ABV", required: ["Aperol", "Vermouth", "Club Soda"], optional: [], spec: "1.5 oz vermouth, 1.5 oz Aperol. Build over ice, top with soda." },
+          { name: "Manhattan", style: "Classic", required: ["Whiskey", "Vermouth", "Angostura Bitters"], optional: [], spec: "2 oz rye/bourbon, 1 oz vermouth, 2 dashes Angostura. Stir, strain." },
+          { name: "Black Russian", style: "Classic", required: ["Vodka", "Coffee Liqueur"], optional: [], spec: "2 oz vodka, 1 oz coffee liqueur. Build over ice, stir." },
+          { name: "Mind Eraser", style: "Highball", required: ["Vodka", "Coffee Liqueur", "Club Soda"], optional: [], spec: "1.5 oz vodka, 1 oz coffee liqueur. Build over ice, top with soda." },
+          { name: "Aperol Spritz (Lite)", style: "Spritz", required: ["Aperol", "Sparkling Water"], optional: ["Club Soda", "Orange Juice"], spec: "2 oz Aperol. Build over ice, top with sparkling water." },
+          { name: "Tequila Sunrise", style: "Classic", required: ["Tequila", "Orange Juice", "Grenadine"], optional: [], spec: "2 oz tequila, 4 oz OJ, 0.5 oz grenadine sink. Build over ice." },
+          { name: "Cape Codder", style: "Classic", required: ["Vodka", "Cranberry Juice"], optional: ["Lime Juice"], spec: "2 oz vodka, 4 oz cranberry. Build over ice." },
+          { name: "Bay Breeze", style: "Classic", required: ["Vodka", "Pineapple Juice", "Cranberry Juice"], optional: [], spec: "2 oz vodka, 3 oz pineapple, 2 oz cranberry. Build over ice." },
+          { name: "Tom Collins (Elderflower)", style: "Twist", required: ["Gin", "Lemon Juice", "Elderflower Liqueur", "Club Soda"], optional: [], spec: "1.5 oz gin, 0.75 oz elderflower, 0.75 oz lemon. Shake light, top with soda." },
+        ];
+
+        // ---------------------------------------------------------------------------
+        // Helpers
+        // ---------------------------------------------------------------------------
+        function titleCase(s) { return s.toLowerCase().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "); }
+        function normalize(item) { const key = item.trim().toLowerCase(); return NORM[key] || toKnownOption(key) || titleCase(item.trim()); }
+        function toKnownOption(key) {
+          const all = CATEGORIES.flatMap(c => c.options).map(o => o.toLowerCase());
+          for (const opt of all) { const token = opt.replace(/[^a-z]/g, ""); if (key.replace(/[^a-z]/g, "").includes(token)) return titleCase(opt); }
+          return undefined;
+        }
+        function setHasAll(present, needs) { return needs.every(n => present.has(normalize(n))); }
+
+        function flavorHighlights(parts) {
+          const tags = [];
+          if (parts.base) tags.push("boozy");
+          if (/(lemon|lime|orange)/i.test(parts.acid || "")) tags.push("citrus", "sour");
+          if (/(simple|agave|grenadine|elderflower|amaretto)/i.test(parts.sweet || "")) tags.push("sweet");
+          if (/(angostura|orange bitters|aperol)/i.test(parts.bitter || parts.aroma || "")) tags.push("bitter");
+          if (/(club soda|sparkling water|tonic|cola|lemonade)/i.test(parts.bubble || "")) tags.push("bubbly");
+          if (/(vermouth|absinthe)/i.test(parts.aroma || "")) tags.push("herbal");
+          return Array.from(new Set(tags));
+        }
+
+        function sample(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+        function maybe(val, ok = true) { return ok && val ? (Math.random() < 0.7 ? val : undefined) : undefined; }
+
+        function funName(base, parts, mood, theme) {
+          const atoms = [base, parts.acid ? parts.acid.split(" ")[0] : "", parts.sweet ? parts.sweet.split(" ")[0] : "", parts.aroma ? parts.aroma.split(" ")[0] : ""].filter(Boolean);
+          const table = { Classic: ["House", "Standard", "Garden", "Civic"], Creative: ["Twist", "Glow", "Riff", "Lilt", "Bloom"], Unique: ["Edge", "Signal", "Spark", "Arc", "Hush"], Wild: ["Chaos", "Neon", "Cipher", "Flux", "Orbit"] };
+          const suffix = sample(table[(mood) || "Creative"]);
+          const baseName = `${atoms[0]} ${suffix}`.trim();
+          return theme.trim() ? `${baseName} — ${titleCase(theme.trim())}` : baseName;
+        }
+
+        function flavorNote(base, parts, theme) {
+          const notes = [];
+          if (parts.acid) notes.push("bright");
+          if (parts.sweet) notes.push("balanced");
+          if (parts.bubble) notes.push("spritzed");
+          if (parts.aroma === "Vermouth") notes.push("aromatic");
+          if (parts.aroma === "Aperol") notes.push("citrus-bitter");
+          if (parts.aroma === "Coffee Liqueur") notes.push("mocha");
+          if (parts.bitter) notes.push("spiced");
+          const themeNote = theme.trim() ? ` Theme: ${theme.trim()}.` : "";
+          return (notes.length ? `${base}-forward, ${notes.join(", ")}.` : `${base}-forward.`) + themeNote;
+        }
+
+        function generateCreative(present, mood, count, theme) {
+          const bases = ["Vodka", "Gin", "Rum", "Tequila", "Whiskey"].filter(b => present.has(b));
+          if (!bases.length) return [];
+          const acids = ["Lemon Juice", "Lime Juice", "Orange Juice"]; const sweets = ["Simple Syrup", "Agave Syrup", "Elderflower Liqueur", "Amaretto", "Grenadine"]; const bitters = ["Angostura Bitters", "Orange Bitters", "Absinthe"]; const bubbles = ["Club Soda", "Sparkling Water", "Tonic Water", "Cola", "Lemonade"]; const aromatics = ["Vermouth", "Aperol", "Coffee Liqueur"];
+          const pickable = (arr) => arr.filter(x => present.has(x));
+          const themeLower = theme.toLowerCase(); const preferDry = /dry|low sugar|no sugar|skinny/.test(themeLower); const preferBubbly = /spritz|bubb|highball|light/.test(themeLower);
+          const out = []; const cap = Math.max(1, Math.min(10, count)); let tries = 0;
+          while (out.length < cap && tries < 160) { tries++;
+            const base = sample(bases); const acid = maybe(sample(pickable(acids)));
+            let sweet = maybe(sample(pickable(sweets))); if (preferDry && sweet && Math.random() < 0.9) sweet = undefined;
+            const bitter = maybe(sample(pickable(bitters)), mood !== "Classic"); let bubble = maybe(sample(pickable(bubbles))); if (preferBubbly && pickable(bubbles).length && !bubble) bubble = sample(pickable(bubbles));
+            const aroma = maybe(sample(pickable(aromatics)));
+            if (acid && !sweet && pickable(sweets).length && !preferDry) { if (Math.random() < 0.8) continue; }
+            const name = funName(base, { acid, sweet, aroma, bitter, bubble }, mood, theme);
+            const specParts = [ `2 oz ${base}`, acid ? `1 oz ${acid.toLowerCase()}` : null, sweet ? (sweet.endsWith("Liqueur") || sweet === "Amaretto" ? `0.75 oz ${sweet}` : `0.75 oz ${sweet.toLowerCase()}`) : null, aroma && !/(Liqueur|Aperol|Coffee Liqueur)$/.test(aroma) ? `0.5–0.75 oz ${aroma.toLowerCase()}` : null, bitter ? `2 dashes ${bitter.toLowerCase()}` : null, bubble ? `top with ${bubble.toLowerCase()}` : null ].filter(Boolean);
+            const method = bubble ? "Shake light, strain over fresh ice, top with bubbles." : "Shake hard, double strain.";
+            const id = name + "::" + specParts.join("|");
+            if (!out.some(x => x.id === id)) out.push({ id, name, style: mood === "Wild" ? "Experimental" : mood, spec: specParts.join(", ") + " " + method, notes: flavorNote(base, { acid, sweet, aroma, bitter, bubble }, theme), parts: { base, acid, sweet, aroma, bitter, bubble } });
+          }
+          return out;
+        }
+
+        function usePantryState() {
+          const initial = useMemo(() => Object.fromEntries(CATEGORIES.map(c => [c.key, new Set()])), []);
+          const [pantry, setPantry] = useState(initial);
+          const toggle = (key, item) => setPantry(prev => { const next = { ...prev, [key]: new Set(prev[key]) }; const norm = normalize(item); if (next[key].has(norm)) next[key].delete(norm); else next[key].add(norm); return next; });
+          const addOther = (key, raw) => { const norm = normalize(raw); setPantry(prev => { const next = { ...prev, [key]: new Set(prev[key]) }; next[key].add(norm); return next; }); return norm; };
+          const reset = () => setPantry(initial);
+          return { pantry, toggle, addOther, reset };
+        }
+
+        function flattenPantry(pantry) { const all = new Set(); (Object.keys(pantry)).forEach(k => pantry[k].forEach(v => all.add(normalize(v)))); return all; }
+
+        // ---------------------------------------------------------------------------
+        // App
+        // ---------------------------------------------------------------------------
+        function App() {
+          const { pantry, toggle, addOther, reset } = usePantryState();
+          const [step, setStep] = useState(0);
+          const [modes, setModes] = useState(new Set(["Classic", "Creative", "Discovery"]));
+          const [theme, setTheme] = useState("");
+          const [autoRegen, setAutoRegen] = useState(true);
+          const [k, setK] = useState(8);
+          const [results, setResults] = useState([]);
+          const [activeRecipe, setActiveRecipe] = useState(null);
+          const [optionsMap, setOptionsMap] = useState(() => Object.fromEntries(CATEGORIES.map(c => [c.key, [...c.options]])));
+          const [loading, setLoading] = useState(false);
+          const [error, setError] = useState(null);
+
+          const progress = ((Math.min(step, CATEGORIES.length) + 1) / (CATEGORIES.length + 1)) * 100;
+          const present = useMemo(() => flattenPantry(pantry), [pantry]);
+
+          const goNext = () => setStep(s => Math.min(s + 1, CATEGORIES.length));
+          const goPrev = () => setStep(s => Math.max(s - 1, 0));
+          function confirmStep() { const cat = CATEGORIES[step]; if (cat?.min && pantry[cat.key].size < cat.min) return; goNext(); }
+          const jumpTo = (idx) => setStep(idx);
+          const toggleMode = (m) => setModes(prev => { const next = new Set(prev); if (next.has(m)) next.delete(m); else next.add(m); return next; });
+
+          function addOtherFull(key, raw) { const norm = normalize(raw); setOptionsMap(prev => { const arr = prev[key] || []; if (arr.includes(norm)) return prev; return { ...prev, [key]: [...arr, norm] }; }); if (!pantry[key].has(norm)) toggle(key, norm); return norm; }
+
+          useEffect(() => { if (autoRegen && step >= CATEGORIES.length) void generate(); }, [theme, pantry, modes, k]);
+
+          async function generate() {
+            setLoading(true); setError(null);
+            try {
+              const selected = Array.from(modes);
+              const activeModes = selected.length ? (selected) : ["Classic", "Creative", "Discovery"];
+              let pool = [];
+
+              if (activeModes.includes("Classic")) {
+                const classics = RECIPES
+                  .filter(r => setHasAll(present, r.required))
+                  .map(r => ({ ...r, id: r.name + "::classic", notes: r.style, parts: roughPartsFromSpec(r.spec) }))
+                  .sort((a, b) => scoreClassic(present, b) - scoreClassic(present, a));
+                pool = pool.concat(classics);
+              }
+
+              const creativeModes = activeModes.filter(m => ["Creative", "Unique", "Wild"].includes(m));
+              if (creativeModes.length) {
+                const eachCount = Math.ceil(Math.max(0, k - pool.length) / creativeModes.length) || 0;
+                for (const m of creativeModes) pool = pool.concat(generateCreative(present, m, eachCount, theme));
+              }
+
+              if (activeModes.includes("Discovery")) {
+                const discovered = await discoverFromWeb(present, theme, Math.max(0, k - pool.length));
+                pool = pool.concat(discovered);
+              }
+
+              const dedup = dedupeBy(pool, r => r.id).slice(0, k);
+              setResults(dedup);
+              if (!dedup.length) setError("No drinks matched your inputs. Try adding at least one base spirit or enable Discovery.");
+            } catch (e) {
+              setError(e?.message || "Could not generate drinks right now.");
+            } finally { setLoading(false); }
+          }
+
+          function scoreClassic(present, r) { let s = 0; r.required?.forEach((req) => { s += present.has(req) ? 3 : -100; }); r.optional?.forEach((opt) => { s += present.has(opt) ? 1 : 0; }); return s; }
+          function dedupeBy(arr, keyFn) { const seen = new Set(); const out = []; for (const x of arr) { const k = keyFn(x); if (!seen.has(k)) { seen.add(k); out.push(x); } } return out; }
+
+          function copyList() { const txt = results.map((r, i) => `${i + 1}. ${r.name} — ${r.spec}${r.notes ? `\n   Notes: ${r.notes}` : ""}`).join("\n\n"); void navigator.clipboard.writeText(txt); }
+          function clearAll() { reset(); setStep(0); setResults([]); setTheme(""); setModes(new Set(["Classic", "Creative", "Discovery"])); }
+
+          return (
+            <div className="min-h-screen bg-neutral-100 text-neutral-900">
+              <div className="mx-auto max-w-6xl px-4 py-8">
+                <header className="flex items-center justify-between gap-4 pb-6">
+                  <div>
+                    <h1 className="text-2xl font-semibold tracking-tight">Home Bar Wizard</h1>
+                    <p className="text-sm text-neutral-600">Pick what you have. Get great drinks. Minimal fuss.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={clearAll} className="inline-flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm hover:bg-neutral-50"><RefreshCw className="h-4 w-4" /> Reset</button>
+                    <a className="rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm hover:bg-neutral-50" href="#about">About</a>
+                  </div>
+                </header>
+
+                <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200"><div className="h-full bg-neutral-900 transition-all" style={{ width: `${progress}%` }} /></div>
+
+                <main className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
+                  <section className="md:col-span-2">
+                    {step < CATEGORIES.length ? (
+                      <CategoryCard stepIndex={step} cat={CATEGORIES[step]} options={optionsMap[CATEGORIES[step].key]} selected={pantry[CATEGORIES[step].key]} onToggle={(item) => toggle(CATEGORIES[step].key, item)} onAddOther={(raw) => addOtherFull(CATEGORIES[step].key, raw)} onPrev={step > 0 ? goPrev : undefined} onConfirm={confirmStep} />
+                    ) : (
+                      <GenerateCard modes={modes} toggleMode={toggleMode} k={k} setK={setK} theme={theme} setTheme={setTheme} autoRegen={autoRegen} setAutoRegen={setAutoRegen} onGenerate={generate} results={results} onCopy={copyList} onOpenRecipe={setActiveRecipe} loading={loading} error={error} />
+                    )}
+                  </section>
+
+                  <aside className="sticky top-4 self-start rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+                    <h3 className="mb-2 text-sm font-medium text-neutral-700">Your Bar</h3>
+                    <ul className="space-y-3 text-sm">
+                      {CATEGORIES.map((c, idx) => (
+                        <li key={c.key}>
+                          <button onClick={() => jumpTo(idx)} className="w-full text-left" title="Click to edit this category">
+                            <div className="mb-1 flex items-center justify-between text-neutral-600">
+                              <span className="underline-offset-2 hover:underline">{c.title}</span>
+                              <span className="text-xs">{pantry[c.key].size}</span>
+                            </div>
+                          </button>
+                          {pantry[c.key].size > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {Array.from(pantry[c.key]).map(v => (<span key={v} className="rounded-full bg-neutral-100 px-2 py-1 text-xs">{v}</span>))}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </aside>
+                </main>
+
+                <footer id="about" className="mt-10 text-xs text-neutral-500">
+                  <p>Tips: aim for 2 parts spirit, 1 part sour, 0.75 part sweet; add bitters; lengthen with soda if desired. Ice matters.</p>
+                </footer>
+              </div>
+
+              {activeRecipe && (<RecipeModal recipe={activeRecipe} onClose={() => setActiveRecipe(null)} />)}
+            </div>
+          );
+        }
+
+        // ---------------------------------------------------------------------------
+        // UI Components
+        // ---------------------------------------------------------------------------
+        function CategoryCard({ stepIndex, cat, options, selected, onToggle, onAddOther, onConfirm, onPrev }) {
+          const [otherVal, setOtherVal] = useState("");
+          const [lastMapped, setLastMapped] = useState(null);
+          const submitOther = () => { if (!otherVal.trim()) return; const norm = onAddOther(otherVal); setLastMapped(norm); setOtherVal(""); };
+          const onKey = (e) => { if (e.key === 'Enter') { e.preventDefault(); submitOther(); }};
+          return (
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">{cat.title}</h2>
+                  <p className="text-sm text-neutral-500">{cat.helper}</p>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-neutral-500"><Info className="h-4 w-4" /> Step {stepIndex + 1} of {CATEGORIES.length + 1}</div>
+              </div>
+              <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-3">
+                {options.map(opt => { const isOn = selected.has(opt); return (
+                  <button key={opt} onClick={() => onToggle(opt)} className={"group flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm transition " + (isOn ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300 bg-white hover:bg-neutral-50")}>
+                    <span>{opt}</span>{isOn ? <Check className="h-4 w-4" /> : null}
+                  </button>
+                );})}
+              </div>
+              <div className="mb-5 rounded-xl border border-dashed border-neutral-300 p-3">
+                <div className="mb-2 text-sm font-medium text-neutral-700">Other</div>
+                <div className="flex items-center gap-2">
+                  <input value={otherVal} onChange={e => setOtherVal(e.target.value)} onKeyDown={onKey} placeholder="Type an ingredient (e.g., bourbon, St‑Germain, seltzer)" className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500" />
+                  <button onClick={submitOther} className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-3 py-2 text-sm text-white hover:bg-black"><Plus className="h-4 w-4" /> Add</button>
+                </div>
+                {lastMapped && (<div className="mt-2 text-xs text-neutral-500">Added as: <span className="font-medium text-neutral-700">{lastMapped}</span></div>)}
+              </div>
+              <div className="flex items-center justify-between">
+                {onPrev ? (<button onClick={onPrev} className="inline-flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm hover:bg-neutral-50"><ChevronLeft className="h-4 w-4" /> Back</button>) : (<span />)}
+                <button onClick={onConfirm} className={"inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm shadow-sm transition " + (cat.min && selected.size < cat.min ? "cursor-not-allowed bg-neutral-300 text-white" : "bg-neutral-900 text-white hover:bg-black")}>Save Changes <ChevronRight className="h-4 w-4" /></button>
+              </div>
+            </div>
+          );
+        }
+
+        function GenerateCard({ modes, toggleMode, k, setK, theme, setTheme, autoRegen, setAutoRegen, onGenerate, results, onCopy, onOpenRecipe, loading, error }) {
+          const isOn = (m) => modes.has(m);
+          return (
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Generate Drinks</h2>
+                  <p className="text-sm text-neutral-500">Pick vibes, add a theme, then create your list. Discovery pulls in fresh ideas from the web.</p>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-neutral-500">Final Step</div>
+              </div>
+
+              <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {(["Classic", "Creative", "Unique", "Wild", "Discovery"]).map(m => (
+                  <button key={m} onClick={() => toggleMode(m)} className={"flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm " + (isOn(m) ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300 bg-white hover:bg-neutral-50")} title={m === "Classic" ? "Standards & known hits" : m === "Creative" ? "Balanced riffs" : m === "Unique" ? "Bolder pairings" : m === "Wild" ? "Wildcard lab" : "Fetch public recipes online"}>
+                    {m === "Discovery" ? <Globe className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />} {m}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mb-3 flex flex-col gap-2">
+                <label className="text-sm text-neutral-600">Theme / modifications (e.g., "low sugar citrus spritz", "use elderflower", "no egg")</label>
+                <input value={theme} onChange={e => setTheme(e.target.value)} className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500" placeholder="Optional: flavor goal, constraints, or vibe" />
+                <label className="mt-2 inline-flex items-center gap-2 text-xs text-neutral-600">
+                  <input type="checkbox" checked={autoRegen} onChange={e => setAutoRegen(e.target.checked)} /> Auto-regenerate when theme or bar changes
+                </label>
+              </div>
+
+              <div className="mb-5 flex items-center gap-4">
+                <label className="text-sm text-neutral-600">How many drinks?</label>
+                <input type="range" min={5} max={10} value={k} onChange={e => setK(parseInt(e.target.value))} className="w-48" />
+                <span className="text-sm tabular-nums">{k}</span>
+                <button onClick={() => onGenerate()} className="ml-auto inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-4 py-2 text-sm text-white hover:bg-black"><Shuffle className="h-4 w-4" /> {loading ? "Generating..." : "Generate"}</button>
+              </div>
+
+              {error && <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+
+              {results.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between"><h3 className="text-sm font-medium text-neutral-700">Results</h3><button onClick={onCopy} className="inline-flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-xs hover:bg-neutral-50"><Copy className="h-4 w-4" /> Copy list</button></div>
+                  <ul className="space-y-2">
+                    {results.map((r, i) => {
+                      const parsed = parseSpec(r.spec);
+                      const diff = computeDifficulty(parsed);
+                      const highlights = r.parts ? flavorHighlights(r.parts) : [];
+                      return (
+                        <li key={r.id}>
+                          <button onClick={() => onOpenRecipe(r)} className="w-full rounded-xl border border-neutral-200 p-3 text-left hover:bg-neutral-50" title="Click for full recipe">
+                            <div className="flex items-start justify-between">
+                              <div className="pr-3">
+                                <div className="font-medium">{i + 1}. {r.name}</div>
+                                {r.notes && <div className="mt-1 text-xs text-neutral-500">{r.notes}</div>}
+                                {highlights.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-1">
+                                    {highlights.map(h => (<span key={h} className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] uppercase tracking-wide text-neutral-700">{h}</span>))}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="relative w-1/2">
+                                <div className="absolute right-0 top-0 text-xs font-semibold" style={{color: diff.color}}>{diff.label}</div>
+                                <div className="mt-4">
+                                  <ul className="list-disc pl-5 text-sm text-neutral-800">
+                                    {parsed.ingredients.map((line, idx) => (<li key={idx}>{line}</li>))}
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-neutral-200 p-6 text-center text-sm text-neutral-500">Click Generate to see drinks that fit your bar.</div>
+              )}
+            </div>
+          );
+        }
+
+        function RecipeModal({ recipe, onClose }) {
+          const parsed = useMemo(() => parseSpec(recipe.spec), [recipe.spec]);
+          const simple = useMemo(() => toSimpleDirections(parsed.ingredients), [parsed.ingredients]);
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">{recipe.name}</h3>
+                    <div className="text-xs text-neutral-500">{recipe.style}</div>
+                    {recipe.notes && <div className="mt-1 text-xs text-neutral-500">{recipe.notes}</div>}
+                  </div>
+                  <button onClick={onClose} className="rounded-lg border border-neutral-300 p-1 hover:bg-neutral-50" title="Close"><CloseIcon className="h-4 w-4" /></button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm font-medium text-neutral-700">Ingredients</div>
+                    <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-neutral-800">
+                      {parsed.ingredients.map((line, idx) => (<li key={idx}>{line}</li>))}
+                    </ul>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-neutral-700">Directions (simple)</div>
+                    <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-neutral-800">
+                      {simple.map((line, idx) => (<li key={idx}>{line}</li>))}
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // ---------------------------------------------------------------------------
+        // Core Logic
+        // ---------------------------------------------------------------------------
+        function computeDifficulty(parsed) {
+          const n = parsed.ingredients.length;
+          const text = parsed.steps.join(" ").toLowerCase();
+          const complexTokens = /(double strain|fine strain|dry shake|reverse dry shake|muddle|float|layer|clarif|egg white|fat wash|split base|rim with|flame|smoke|whip shake)/i;
+          const hasComplex = complexTokens.test(text);
+          if (n <= 3 && !hasComplex) return { label: "easy", color: "#16a34a" }; 
+          if ((n >= 4 && n <= 5) || hasComplex) return { label: "medium", color: "#ea580c" }; 
+          if (n > 5 && hasComplex) return { label: "hard", color: "#dc2626" }; 
+          return { label: n > 5 ? "medium" : "easy", color: n > 5 ? "#ea580c" : "#16a34a" };
+        }
+
+        function parseSpec(spec) {
+          const s = spec || ""; const lower = s.toLowerCase();
+          const first = (...ks) => { const hits = ks.map(k => lower.indexOf(k)).filter(i => i >= 0); return hits.length ? Math.min(...hits) : -1; };
+          const cut = first(" shake", " stir", " build", " muddle", " top with");
+          const ingSeg = cut >= 0 ? s.slice(0, cut) : s; const methodSeg = cut >= 0 ? s.slice(cut).trim() : "";
+          const base = ingSeg.split(",").map(t => t.trim()).filter(Boolean);
+          const ingredients = base.map(t => t.replace(/\s+/g, " ")).map(t => t.charAt(0).toUpperCase() + t.slice(1));
+          const steps = [];
+          if (methodSeg) { const primaries = methodSeg.split(/[.;\n]/).map(x => x.trim()).filter(Boolean); for (const sent of primaries) { const sub = sent.split(/,(?=\s*(strain|top|garnish|double strain|fine strain))/i).map(x => x.trim()); for (const p of sub) if (p) steps.push(p.charAt(0).toUpperCase() + p.slice(1)); } }
+          if (!steps.length) steps.push("Build in glass over ice.");
+          return { ingredients, steps };
+        }
+
+        function toSimpleDirections(ingredients) {
+          const base = ingredients.find(x => /\b(gin|vodka|rum|tequila|whiskey|bourbon|rye)\b/i.test(x)) || ingredients[0] || "2 oz spirit";
+          const lemon = ingredients.find(x => /lemon/i.test(x));
+          const lime = ingredients.find(x => /lime/i.test(x));
+          const orange = ingredients.find(x => /orange juice/i.test(x));
+          const acid = lemon || lime || orange || ingredients.find(x => /juice/i.test(x));
+          const sweet = ingredients.find(x => /(simple|agave|grenadine|elderflower|amaretto)/i.test(x)) || "";
+          const hasBubbles = ingredients.some(x => /(club soda|sparkling water|tonic|cola|lemonade)/i.test(x));
+
+          const steps = [];
+          steps.push("Start with ice in the shaker.");
+          steps.push(`Add ${base.toLowerCase()}.`);
+          if (acid) steps.push(`Add ${acid.toLowerCase()}.`);
+          if (sweet) steps.push(`Add ${sweet.toLowerCase()}.`);
+          steps.push("Shake.");
+          steps.push("Prep fresh ice and an orange peel in the cup.");
+          steps.push("Strain into the cup.");
+          if (hasBubbles) steps.push("Top with bubbles.");
+          steps.push("Serve.");
+          return steps;
+        }
+
+        async function discoverFromWeb(present, theme, want) {
+          if (want <= 0) return [];
+          const bases = ["Vodka", "Gin", "Rum", "Tequila", "Whiskey"].filter(b => present.has(b));
+          const out = [];
+
+          const pushRandom = async () => {
+            try {
+              const r = await fetch("https://www.thecocktaildb.com/api/json/v1/1/random.php");
+              if (!r.ok) return; const dd = await r.json(); const drink = dd?.drinks?.[0]; if (!drink) return;
+              const spec = specFromCocktailDB(drink);
+              const parts = roughPartsFromSpec(spec);
+              out.push({ id: `disc::rand::${drink.idDrink}`, name: drink.strDrink, style: "Discovery", spec, notes: `Random — online discovery`, parts });
+            } catch {}
+          };
+
+          if (bases.length) {
+            for (const base of bases.slice(0, 2)) {
+              try {
+                const url = `https://www.thecocktaildb.com/api/json/v1/1/filter.php?i=${encodeURIComponent(base)}`;
+                const res = await fetch(url);
+                if (!res.ok) continue; const data = await res.json();
+                const picks = (data?.drinks || []).slice(0, 5);
+                for (const d of picks) {
+                  const detailUrl = `https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${d.idDrink}`;
+                  const r = await fetch(detailUrl); if (!r.ok) continue; const dd = await r.json(); const drink = dd?.drinks?.[0]; if (!drink) continue;
+                  const spec = specFromCocktailDB(drink);
+                  const parts = roughPartsFromSpec(spec);
+                  out.push({ id: `disc::${d.idDrink}`, name: drink.strDrink, style: "Discovery", spec, notes: `${base} — online discovery`, parts });
+                  if (out.length >= want) break;
+                }
+              } catch {}
+              if (out.length >= want) break;
+            }
+          }
+
+          while (out.length < want) { await pushRandom(); }
+
+          const themeWords = theme.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+          const score = (r) => themeWords.reduce((s, w) => s + (r.name.toLowerCase().includes(w) || r.spec.toLowerCase().includes(w) ? 1 : 0), 0);
+          return out.sort((a, b) => score(b) - score(a)).slice(0, want);
+        }
+
+        function specFromCocktailDB(drink) {
+          const ings = [];
+          for (let i = 1; i <= 15; i++) {
+            const ing = drink[`strIngredient${i}`]; const meas = drink[`strMeasure${i}`];
+            if (!ing) break; const line = `${(meas || "").trim()} ${ing}`.trim().replace(/\s+/g, " ");
+            if (line) ings.push(line);
+          }
+          const instr = (drink.strInstructions || "").replace(/\s+/g, " ");
+          const basePart = ings.join(", ");
+          let method = "Shake, strain."; if (/build/i.test(instr)) method = "Build over ice."; if (/stir/i.test(instr)) method = "Stir with ice, strain."; if (/top with/i.test(instr)) method += " Top with soda.";
+          return `${basePart}. ${method}`;
+        }
+
+        function roughPartsFromSpec(spec) {
+          const ing = parseSpec(spec).ingredients.map(s => s.toLowerCase());
+          const get = (re) => ing.find(x => re.test(x))?.replace(/^[0-9 .oz–-]+\s*/, "");
+          return {
+            base: get(/\b(vodka|gin|rum|tequila|whiskey|bourbon|rye)\b/i),
+            acid: get(/(lemon|lime|orange) juice/i),
+            sweet: get(/(simple syrup|agave syrup|grenadine|elderflower liqueur|amaretto)/i),
+            bitter: get(/(angostura bitters|orange bitters)/i),
+            bubble: get(/(club soda|sparkling water|tonic water|cola|lemonade)/i),
+            aroma: get(/(vermouth|aperol|coffee liqueur|absinthe)/i),
+          };
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
