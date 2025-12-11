@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robert Song — CreativeLab</title>
+    <style>
+        :root {
+            --primary: #2563eb; /* A nice blue similar to your image */
+            --text-main: #1f2937;
+            --text-muted: #4b5563;
+            --bg-hover: #f3f4f6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-main);
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            background-color: #fff;
+        }
+
+        /* Header Section */
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #111;
+        }
+
+        .intro-text {
+            color: var(--text-muted);
+            max-width: 650px;
+            margin: 0 auto 1.5rem auto;
+            font-size: 1rem;
+        }
+
+        .social-links a {
+            color: var(--primary);
+            text-decoration: none;
+            margin: 0 0.5rem;
+            font-weight: 500;
+        }
+        .social-links a:hover { text-decoration: underline; }
+
+        /* Projects Section */
+        .projects-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+
+        /* PYRAMID LAYOUT GRID */
+        .project-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        /* The Pyramid Top: Spans both columns */
+        .project-card.featured-top {
+            grid-column: 1 / -1; 
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .project-card h3 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .project-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .project-title {
+            color: var(--primary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .project-title:hover { text-decoration: underline; }
+
+        .project-desc {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        ul {
+            padding-left: 1.2rem;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        li { margin-bottom: 0.25rem; }
+
+        .use-it-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            display: block;
+            color: var(--text-main);
+        }
+
+        /* Mobile Responsive: Stack everything */
+        @media (max-width: 640px) {
+            .project-grid {
+                grid-template-columns: 1fr;
+            }
+            .project-card.featured-top {
+                grid-column: auto;
+                border-bottom: 1px solid #e5e7eb; /* Keep separator on mobile */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Robert Song — CreativeLab</h1>
+        <p class="intro-text">
+            CreativeLab is my personal space for building simple, fast, and useful interactive tools. 
+            These projects reflect how I learn by creating things and exploring ideas in product design, 
+            clear user interfaces, and practical problem solving.
+        </p>
+        <div class="social-links">
+            <a href="https://github.com/robertssong" target="_blank">📂 View GitHub</a>
+            <!-- Update your LinkedIn Link below if you want it to work -->
+            <a href="#" target="_blank">👤 Connect on LinkedIn</a>
+        </div>
+    </header>
+
+    <section class="projects-section">
+        <h2>Featured Projects</h2>
+
+        <div class="project-grid">
+            
+            <!-- TOP OF PYRAMID: Physical Therapy Guide -->
+            <article class="project-card featured-top">
+                <h3>
+                    <a href="./pt-guide/index.html" class="project-link">
+                        <span class="project-title">🩺 Physical Therapy Guide</span>
+                    </a>
+                </h3>
+                <p class="project-desc">
+                    An interactive visual tool designed to help identify potential musculoskeletal issues based on location, intensity, and pain quality. It uses clinical triage logic to differentiate between simple mechanical aches and issues requiring professional care.
+                </p>
+                <span class="use-it-label">Use it to:</span>
+                <ul>
+                    <li>Visually pinpoint pain using an interactive body map</li>
+                    <li>Triage symptoms based on clinical red flags and patterns</li>
+                    <li>Get immediate, tailored self-management routines</li>
+                </ul>
+            </article>
+
+            <!-- BOTTOM LEFT: Poker Trainer -->
+            <article class="project-card">
+                <h3>
+                    <a href="./poker/index.html" class="project-link">
+                        <span class="project-title">♦️ Poker Trainer</span>
+                    </a>
+                </h3>
+                <p class="project-desc">
+                    A simple practice tool designed to make learning poker more intuitive and fun. Features a clean 13×13 starting-hand grid and customizable scenarios to build intuition.
+                </p>
+                <span class="use-it-label">Use it to:</span>
+                <ul>
+                    <li>Explore starting-hand ranges visually</li>
+                    <li>Teach and practice decision making</li>
+                    <li>Build intuition for common poker spots</li>
+                </ul>
+            </article>
+
+            <!-- BOTTOM RIGHT: Bar Wizard -->
+            <article class="project-card">
+                <h3>
+                    <a href="./bar/index.html" class="project-link">
+                        <span class="project-title">🍹 Bar Wizard</span>
+                    </a>
+                </h3>
+                <p class="project-desc">
+                    Turn whatever ingredients you have into structured, cocktail-ready recipes. A "pantry" system suggests drinks based on ratios and classic structures.
+                </p>
+                <span class="use-it-label">Use it to:</span>
+                <ul>
+                    <li>Discover new drink ideas with ingredients on hand</li>
+                    <li>Learn the foundations of cocktail structures</li>
+                    <li>Host friends with more variety and less prep</li>
+                </ul>
+            </article>
+
+        </div>
+    </section>
+
+</body>
+</html>
