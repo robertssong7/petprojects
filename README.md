@@ -1,4 +1,4 @@
-<h1 align="center">Robert Sangmok Song — CreativeLab</h1>
+<h1 align="center">Robert Song — CreativeLab</h1>
 
 <p align="center">
   CreativeLab is my personal space for building simple, fast, and useful interactive tools. 
